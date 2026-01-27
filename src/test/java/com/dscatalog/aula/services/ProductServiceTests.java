@@ -91,7 +91,7 @@ public class ProductServiceTests {
 	}
 
 	@Test
-	public void updateShouldThrowResourceNotFoundExceptionWhenIdExists() {
+	public void updateShouldThrowResourceNotFoundExceptionWhenIdNotExists() {
 		Assertions.assertThrows(ResourceNotFoundException.class, () -> {
 			service.update(nonExistingId, ProductFactory.createProductDTO());
 		});
