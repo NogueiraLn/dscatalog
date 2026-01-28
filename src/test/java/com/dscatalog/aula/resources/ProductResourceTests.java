@@ -2,7 +2,10 @@ package com.dscatalog.aula.resources;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -12,9 +15,9 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,11 +26,10 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.dscatalog.aula.dto.ProductDTO;
 import com.dscatalog.aula.entities.Product;
-import com.dscatalog.aula.repositories.ProductRepository;
 import com.dscatalog.aula.services.ProductService;
+import com.dscatalog.aula.services.exceptions.DatabaseException;
 import com.dscatalog.aula.services.exceptions.ResourceNotFoundException;
 import com.dscatalog.aula.tests.factories.ProductFactory;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @WebMvcTest(ProductResource.class)
@@ -44,6 +46,7 @@ public class ProductResourceTests {
 	
 	private Long existingId;
 	private Long nonExistingId;
+	private Long dependentId;
 	private PageImpl<ProductDTO> page;
 	private ProductDTO productDTO;
 	private Product product;
@@ -53,6 +56,7 @@ public class ProductResourceTests {
 		
 		existingId = 1L;
 		nonExistingId = 100L;
+		dependentId = 2L;
 		productDTO = ProductFactory.createProductDTO();
 		product = ProductFactory.createProduct();
 		page = new PageImpl<>(List.of(productDTO));
@@ -69,6 +73,24 @@ public class ProductResourceTests {
 		when(service.update(eq(existingId), any())).thenReturn(productDTO);
 		when(service.update(eq(nonExistingId), any())).thenThrow(ResourceNotFoundException.class);
 		
+		// Delete
+		doNothing().when(service).delete(existingId);
+		doThrow(DatabaseException.class).when(service).delete(dependentId);
+		
+	}
+	
+	@Test
+	public void deleteShouldDoNothingWhenIdExists() throws Exception {
+		ResultActions result = mockMvc.perform(delete("/products/{id}", existingId));
+		
+		result.andExpect(status().isNoContent());
+	}
+	
+	@Test
+	public void deleteShouldThrowDataIntegrityViolationExceptionWhenIsDependentId() throws Exception {
+		ResultActions result = mockMvc.perform(delete("/products/{id}", dependentId));
+		
+		result.andExpect(status().isBadRequest());
 	}
 	
 	@Test
