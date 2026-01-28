@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,7 +18,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -77,10 +77,27 @@ public class ProductResourceTests {
 		doNothing().when(service).delete(existingId);
 		doThrow(DatabaseException.class).when(service).delete(dependentId);
 		
+		// Insert
+		when(service.insert(any())).thenReturn(productDTO);
 	}
 	
 	@Test
-	public void deleteShouldDoNothingWhenIdExists() throws Exception {
+	public void insertShouldReturnCreatedAndProductDTO() throws Exception {
+		String jsonBody = mapper.writeValueAsString(productDTO);
+		
+		ResultActions result = mockMvc.perform(post("/products")
+				.content(jsonBody)
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_JSON));
+		
+		result.andExpect(status().isCreated());
+		result.andExpect(jsonPath("$.id").exists());
+		result.andExpect(jsonPath("$.name").exists());
+		
+	}
+		
+	@Test
+	public void deleteShouldReturnNoContentWhenIdExists() throws Exception {
 		ResultActions result = mockMvc.perform(delete("/products/{id}", existingId));
 		
 		result.andExpect(status().isNoContent());
