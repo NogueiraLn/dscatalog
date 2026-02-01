@@ -1,6 +1,7 @@
 package com.dscatalog.aula.resources;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -14,6 +15,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dscatalog.aula.dto.ProductDTO;
+import com.dscatalog.aula.tests.factories.ProductFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -21,6 +26,8 @@ public class ProductResourceIT {
 
 	@Autowired
 	private MockMvc mockMvc;
+	@Autowired
+	private ObjectMapper mapper;
 	
 	private Long existingId;
 	private Long nonExistingId;
@@ -49,5 +56,40 @@ public class ProductResourceIT {
 		
 	}
 	
+	@Test
+	public void updateShouldReturnProductDTOWhenIdExists() throws Exception {
+		ProductDTO productDTO = ProductFactory.createProductDTO();
+		
+		String expectedName = productDTO.getName();
+		String expectedDescription = productDTO.getDescription();
+		Double expectedPrice = productDTO.getPrice();
+		
+		String jsonBody = mapper.writeValueAsString(productDTO);
+		
+		ResultActions result = mockMvc.perform(put("/products/{id}", existingId)
+				.content(jsonBody)
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_JSON));
+		
+		result.andExpect(status().isOk());
+		result.andExpect(jsonPath("$.id").value(existingId));
+		result.andExpect(jsonPath("$.name").value(expectedName));
+		result.andExpect(jsonPath("$.description").value(expectedDescription));
+		result.andExpect(jsonPath("$.price").value(expectedPrice));
+	}
+	
+	@Test
+	public void updateShouldReturnNotFoundWhenIdNotExists() throws Exception {
+		ProductDTO productDTO = ProductFactory.createProductDTO();
+		String jsonBody = mapper.writeValueAsString(productDTO);
+		
+		ResultActions result = mockMvc.perform(put("/products/{id}", nonExistingId)
+				.content(jsonBody)
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_JSON));
+		
+		result.andExpect(status().isNotFound());
+		
+	}
 	
 }
