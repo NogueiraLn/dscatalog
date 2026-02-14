@@ -91,7 +91,7 @@ public class UserService {
 		entity.setFirstName(dto.getFirstName());
 		entity.setLastName(dto.getLastName());
 		entity.setEmail(dto.getEmail());
-		entity.setPassword(dto.getPassword());
+
 		entity.getRoles().clear();
 		for(RoleDTO catDTO : dto.getRoles()) {
 			Role roleEntity = roleRepository.getReferenceById(catDTO.getId());

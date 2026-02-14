@@ -6,14 +6,18 @@ import java.util.Set;
 
 import com.dscatalog.aula.entities.User;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
 public class UserDTO implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private Long id;
+	@NotBlank(message = "Campo obrigatório")
 	private String firstName;
 	private String lastName;
+	@Email(message = "Inserir um email válido")
 	private String email;
-	private String password;
 	
 	private Set<RoleDTO> roles = new HashSet<>();
 	
@@ -65,14 +69,6 @@ public class UserDTO implements Serializable {
 
 	public void setEmail(String email) {
 		this.email = email;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
 	}
 
 	public Set<RoleDTO> getRoles() {
