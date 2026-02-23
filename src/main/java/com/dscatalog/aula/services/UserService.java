@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +22,7 @@ import com.dscatalog.aula.dto.UserInsertDTO;
 import com.dscatalog.aula.dto.UserUpdateDTO;
 import com.dscatalog.aula.entities.Role;
 import com.dscatalog.aula.entities.User;
+import com.dscatalog.aula.projections.UserDetailsProjection;
 import com.dscatalog.aula.repositories.RoleRepository;
 import com.dscatalog.aula.repositories.UserRepository;
 import com.dscatalog.aula.services.exceptions.DatabaseException;
@@ -27,7 +31,7 @@ import com.dscatalog.aula.services.exceptions.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
 
 	@Autowired 
 	private UserRepository repository;
@@ -36,7 +40,7 @@ public class UserService {
 	private RoleRepository roleRepository;
 	
 	@Autowired
-	private BCryptPasswordEncoder passwordEncoder;
+	private PasswordEncoder passwordEncoder;
 	
 	@Transactional(readOnly = true)
 	public List<UserDTO> findAll() {
@@ -87,6 +91,24 @@ public class UserService {
 	        	throw new DatabaseException("Entegrity Violation");
 	   	}
 	}
+
+	@Override
+	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+		List<UserDetailsProjection> result = repository.searchUserAndRolesByEmail(username);
+		if(result.isEmpty()) {
+			throw new UsernameNotFoundException("User not found: " + username);
+		}
+		
+		User user = new User();
+		user.setEmail(username);
+		user.setPassword(result.get(0).getPassword());
+		
+		for(UserDetailsProjection role : result) {
+			user.addRole(new Role(role.getRoleId(), role.getAuthority()));
+		}
+		
+		return user;
+	}
 	
 	private void copyDtoToEntity(UserDTO dto, User entity) {
 		entity.setFirstName(dto.getFirstName());
@@ -99,4 +121,5 @@ public class UserService {
 			entity.getRoles().add(roleEntity);
 		}
 	}
+
 }
