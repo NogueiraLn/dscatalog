@@ -1,5 +1,6 @@
 package com.dscatalog.aula.services;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -7,6 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -16,10 +18,12 @@ import com.dscatalog.aula.dto.CategoryDTO;
 import com.dscatalog.aula.dto.ProductDTO;
 import com.dscatalog.aula.entities.Category;
 import com.dscatalog.aula.entities.Product;
+import com.dscatalog.aula.projections.ProductProjection;
 import com.dscatalog.aula.repositories.CategoryRepository;
 import com.dscatalog.aula.repositories.ProductRepository;
 import com.dscatalog.aula.services.exceptions.DatabaseException;
 import com.dscatalog.aula.services.exceptions.ResourceNotFoundException;
+import com.dscatalog.aula.utils.Utils;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -94,6 +98,27 @@ public class ProductService {
 			Category catEntity = categoryRepository.getReferenceById(catDTO.getId());
 			entity.getCategories().add(catEntity);
 		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Transactional(readOnly = true)
+	public Page<ProductDTO> searchAll(String name, String categoryId, Pageable pageble){
+		List<Long> categoryIds = Arrays.asList();
+		if(!categoryId.equals("0")) {
+			categoryIds = Arrays.asList(categoryId.split(","))
+					.stream().map(Long::parseLong).toList();
+		}
+
+		Page<ProductProjection> pageProdProjection = repository.searchProducts(categoryIds, name, pageble);
+		List<Long> productIds = pageProdProjection.map(x -> x.getId()).toList();
+		
+		List<Product> listProduct = repository.searchProductsWithCategories(productIds);
+		
+		listProduct = (List<Product>) Utils.replace(pageProdProjection.getContent(), listProduct);
+		
+		List<ProductDTO> listProductDTO = listProduct.stream().map(x -> new ProductDTO(x, x.getCategories())).collect(Collectors.toList());
+		
+		return new PageImpl<>(listProductDTO, pageProdProjection.getPageable(), pageProdProjection.getTotalPages());
 	}
 	
 }
