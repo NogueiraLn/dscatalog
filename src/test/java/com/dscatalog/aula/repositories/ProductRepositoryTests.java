@@ -16,11 +16,12 @@ public class ProductRepositoryTests {
 
 	@Autowired
 	private ProductRepository repository;
-	
+
 	private long existingId;
 	private long nonExistingId;
 	private long countTotalProducts;
-	
+    
+
 	@BeforeEach
 	void setUp() throws Exception {
 		existingId = 1L;
@@ -33,31 +34,31 @@ public class ProductRepositoryTests {
 		Optional<Product> result = repository.findById(existingId);
 		Assertions.assertTrue(result.isPresent());
 	}
-	
+
 	@Test
 	public void findByIdShouldReturnEmptyOptionalWhenIdNotExists() {
 		Optional<Product> result = repository.findById(nonExistingId);
 		Assertions.assertTrue(result.isEmpty());
 	}
-	
+
 	@Test
 	public void saveShouldPersistWithAutoincrementWhenIdIsNull() {
 		Product product = ProductFactory.createProduct();
 		product.setId(null);
-		
+
 		product = repository.save(product);
-		
+
 		Assertions.assertNotNull(product.getId());
 		Assertions.assertEquals(++countTotalProducts, product.getId());
 	}
-	
+
 	@Test
 	public void deleteShouldDeleteObjectWhenIdExists(){
 		repository.deleteById(existingId);
-		
+
 		Optional<Product> result = repository.findById(existingId);
-		
+
 		Assertions.assertFalse(result.isPresent());
 	}
-	
+
 }
