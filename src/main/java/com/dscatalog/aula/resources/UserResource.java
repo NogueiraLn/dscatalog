@@ -1,6 +1,7 @@
 package com.dscatalog.aula.resources;
 import java.net.URI;
 
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -65,6 +66,13 @@ public class UserResource {
 	public ResponseEntity<Void> delete(@PathVariable Long id) {
 		service.delete(id);
 		return ResponseEntity.noContent().build();
+	}
+
+	@PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_OPERATOR')")
+	@GetMapping(value = "/me")
+	public ResponseEntity<UserDTO> findUserAuthenticated(){
+		UserDTO dto = service.findMe();
+		return ResponseEntity.ok().body(dto);
 	}
 	
 }
