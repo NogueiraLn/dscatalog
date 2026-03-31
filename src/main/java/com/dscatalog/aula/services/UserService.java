@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.dscatalog.aula.utils.CustomUserUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -44,6 +45,9 @@ public class UserService implements UserDetailsService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private CustomUserUtil userUtil;
 
     @Transactional(readOnly = true)
     public List<UserDTO> findAll() {
@@ -125,10 +129,7 @@ public class UserService implements UserDetailsService {
 
     protected User authenticated() {
         try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            Jwt jwtPrincipal = (Jwt) authentication.getPrincipal();
-            String username = jwtPrincipal.getClaim("username");
-            return repository.findByEmail(username);
+            return repository.findByEmail(userUtil.getLoggedUsername());
         } catch (Exception e) {
             throw new UsernameNotFoundException("Invalid user");
         }
